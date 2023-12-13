@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -183,4 +183,29 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 			throw new Error("Result must have an error or value.");
 		},
 	});
-};
+
+	fastify.route({
+		url: "/widgets/get",
+		method: "POST",
+		handler: async (req, reply) => {
+			const request: IGetWidgetBatchRequest = {};
+			request.ids = req.body as number[];
+
+			const result = await api.getWidgetBatch(request);
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+
+			if (result.value) {
+				if (result.value.results) {
+					reply.status(200).send(result.value.results);
+					return;
+				}
+			}
+
+			throw new Error("Result must have an error or value.");
+		},
+	});
+}
