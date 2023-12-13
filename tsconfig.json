@@ -3,10 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "sourceMap": true,
-    "moduleResolution": "Node16",
-    "module": "Node16",
+    "moduleResolution": "Node",
+    "module": "ESNext",
     "target": "ES2022",
-    "esModuleInterop": true
+    "esModuleInterop": true,
   },
   "include": ["src/**/*.ts"]
 }

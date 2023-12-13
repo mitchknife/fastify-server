@@ -1,46 +1,24 @@
-import * as path from 'path';
-import AutoLoad, {AutoloadPluginOptions} from '@fastify/autoload';
-import { FastifyPluginAsync } from 'fastify';
-import { fileURLToPath } from 'url'
+import fs from "fs";
+import path from "path";
+import { FastifyPluginAsync } from "fastify";
+import { ConformanceApiService } from "./conformanceApiService.js";
+import { conformanceApiPlugin } from "./conformanceApiPlugin.js";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-export type AppOptions = {
-  // Place your custom options for app below here.
-} & Partial<AutoloadPluginOptions>;
+export type AppOptions = {};
+const options: AppOptions = {};
 
+const tests = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "../../FacilityJavaScript/conformance/ConformanceTests.json"), "utf8")
+).tests;
 
-// Pass --options via CLI arguments in command to enable these options.
-const options: AppOptions = {
-}
-
-const app: FastifyPluginAsync<AppOptions> = async (
-    fastify,
-    opts
-): Promise<void> => {
-  // Place here your custom code!
-
-  // Do not touch the following lines
-
-  // This loads all plugins defined in plugins
-  // those should be support plugins that are reused
-  // through your application
-  void fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'plugins'),
-    options: opts,
-    forceESM: true
-  })
-
-  // This loads all plugins defined in routes
-  // define your routes in one of these
-  void fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'routes'),
-    options: opts,
-    forceESM: true
-  })
-
+const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void> => {
+  fastify.register(conformanceApiPlugin, { api: new ConformanceApiService(tests) });
 };
 
 export default app;
-export { app, options }
+export { app, options };
