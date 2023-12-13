@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -138,6 +138,46 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 					reply.status(304);
 					return;
 				}
+			}
+
+			throw new Error("Result must have an error or value.");
+		},
+	});
+
+	// create the delete route here
+	fastify.route({
+		url: "/widgets/:id",
+		method: "DELETE",
+		handler: async (req, reply) => {
+			const request: IDeleteWidgetRequest = {};
+
+			const params = req.params as Record<string, string>;
+			if (typeof params.id === "string") {
+				request.id = parseInt(params.id);
+			}
+			request.ifETag = req.headers['if-match'] as string;
+
+			const result = await api.deleteWidget(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+
+			if (result.value) {
+				if (result.value.notFound) {
+					reply.status(404);
+					return;
+				}
+
+				if (result.value.conflict) {
+					reply.status(409);
+					return;
+				}
+
+				reply.status(204).send({});
+				return;
 			}
 
 			throw new Error("Result must have an error or value.");
