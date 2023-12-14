@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -337,6 +337,79 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 
 			if (result.value) {
 				reply.status(200).send(result.value);
+			}
+
+			throw new Error("Result must have an error or value.");
+		}
+	});
+
+	fastify.route({
+		url: "/mirrorHeaders",
+		method: "GET",
+		handler: async (req, reply) => {
+			const request: IMirrorHeadersRequest = {};
+			const headers = req.headers as Record<string, string>;
+
+			if (typeof headers["string"] === "string") {
+				request.string = headers["string"];
+			}
+			if (typeof headers["boolean"] === "string") {
+				request.boolean = parseBoolean(headers["boolean"]);
+			}
+			if (typeof headers["double"] === "string") {
+				request.double = parseFloat(headers["double"]);
+			}
+			if (typeof headers["int32"] === "string") {
+				request.int32 = parseInt(headers["int32"]);
+			}
+			if (typeof headers["int64"] === "string") {
+				request.int64 = parseInt(headers["int64"]);
+			}
+			if (typeof headers["decimal"] === "string") {
+				request.decimal = parseFloat(headers["decimal"]);
+			}
+			if (typeof headers["enum"] === "string") {
+				request.enum = headers["enum"] as Answer;
+			}
+			if (typeof headers["datetime"] === "string") {
+				request.datetime = headers["datetime"];
+			}
+
+			const result = await api.mirrorHeaders(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+			if (result.value) {
+				if (result.value.string != null) {
+					reply.header("string", result.value.string);
+				}
+				if (result.value.boolean != null) {
+					reply.header("boolean", result.value.boolean.toString());
+				}
+				if (result.value.double != null) {
+					reply.header("double", result.value.double.toString());
+				}
+				if (result.value.int32 != null) {
+					reply.header("int32", result.value.int32.toString());
+				}
+				if (result.value.int64 != null) {
+					reply.header("int64", result.value.int64.toString());
+				}
+				if (result.value.decimal != null) {
+					reply.header("decimal", result.value.decimal.toString());
+				}
+				if (result.value.enum != null) {
+					reply.header("enum", result.value.enum);
+				}
+				if (result.value.datetime != null) {
+					reply.header("datetime", result.value.datetime);
+				}
+
+				reply.status(200);
+				return;
 			}
 
 			throw new Error("Result must have an error or value.");
