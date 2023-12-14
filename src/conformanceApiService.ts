@@ -78,7 +78,10 @@ export class ConformanceApiService implements IConformanceApi {
 		const testsWithMethodName = this._tests.filter((x) => x.method === methodName);
 
 		if (testsWithMethodName.length === 0) {
-			return this.failure({ message: `No tests found for method ${methodName}.` });
+			return this.failure({
+				code: "InvalidRequest",
+				message: `No tests found for method ${methodName}.`,
+			});
 		}
 
 		const testsWithMatchingRequest = testsWithMethodName.filter((x) => {
@@ -87,6 +90,7 @@ export class ConformanceApiService implements IConformanceApi {
 
 		if (testsWithMatchingRequest.length !== 1) {
 			return this.failure({
+				code: "InvalidRequest",
 				message: `${testsWithMatchingRequest.length} of ${testsWithMethodName.length} tests for method ${methodName} matched request:`,
 			});
 		}

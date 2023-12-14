@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -14,6 +14,19 @@ const standardErrorCodes: { [code: string]: number } = {
 	ServiceUnavailable: 503,
 	NotAdmin: 403,
 };
+
+function parseBoolean(value: string | undefined) {
+	if (typeof value === 'string') {
+		const lowerValue = value.toLowerCase();
+		if (lowerValue === 'true') {
+			return true;
+		}
+		if (lowerValue === 'false') {
+			return false;
+		}
+	}
+	return undefined;
+}
 
 export type ConformanceApiPluginOptions = {
 	api: IConformanceApi;
@@ -203,6 +216,79 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 					reply.status(200).send(result.value.results);
 					return;
 				}
+			}
+
+			throw new Error("Result must have an error or value.");
+		},
+	});
+
+	fastify.route({
+		url: "/mirrorFields",
+		method: "POST",
+		handler: async (req, reply) => {
+			const request: IMirrorFieldsRequest = {};
+			request.field = (req.body as IMirrorFieldsRequest).field;
+			request.matrix = (req.body as IMirrorFieldsRequest).matrix;
+
+			const result = await api.mirrorFields(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+
+			if (result.value) {
+				reply.status(200).send(result.value);
+				return;
+			}
+
+			throw new Error("Result must have an error or value.");
+		},
+	});
+
+	fastify.route({
+		url: "/checkQuery",
+		method: "GET",
+		handler: async (req, reply) => {
+			const request: ICheckQueryRequest = {};
+			const query = req.query as Record<string, string>;
+
+			if (typeof query["string"] === "string") {
+				request.string = query["string"];
+			}
+			if (typeof query["boolean"] === "string") {
+				request.boolean = parseBoolean(query["boolean"]);
+			}
+			if (typeof query["double"] === "string") {
+				request.double = parseFloat(query["double"]);
+			}
+			if (typeof query["int32"] === "string") {
+				request.int32 = parseInt(query["int32"]);
+			}
+			if (typeof query["int64"] === "string") {
+				request.int64 = parseInt(query["int64"]);
+			}
+			if (typeof query["decimal"] === "string") {
+				request.decimal = parseFloat(query["decimal"]);
+			}
+			if (typeof query["enum"] === "string") {
+				request.enum = query["enum"] as Answer;
+			}
+			if (typeof query["datetime"] === "string") {
+				request.datetime = query["datetime"];
+			}
+
+			const result = await api.checkQuery(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+
+			if (result.value) {
+				reply.status(200).send(result.value);
 			}
 
 			throw new Error("Result must have an error or value.");
