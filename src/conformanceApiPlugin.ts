@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -293,5 +293,53 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 
 			throw new Error("Result must have an error or value.");
 		},
+	});
+
+	fastify.route({
+		url: "/checkPath/:string/:boolean/:double/:int32/:int64/:decimal/:enum/:datetime",
+		method: "GET",
+		handler: async (req, reply) => {
+			const request: ICheckPathRequest = {};
+			const params = req.params as Record<string, string>;
+
+			if (typeof params["string"] === "string") {
+				request.string = params["string"];
+			}
+			if (typeof params["boolean"] === "string") {
+				request.boolean = parseBoolean(params["boolean"]);
+			}
+			if (typeof params["double"] === "string") {
+				request.double = parseFloat(params["double"]);
+			}
+			if (typeof params["int32"] === "string") {
+				request.int32 = parseInt(params["int32"]);
+			}
+			if (typeof params["int64"] === "string") {
+				request.int64 = parseInt(params["int64"]);
+			}
+			if (typeof params["decimal"] === "string") {
+				request.decimal = parseFloat(params["decimal"]);
+			}
+			if (typeof params["enum"] === "string") {
+				request.enum = params["enum"] as Answer;
+			}
+			if (typeof params["datetime"] === "string") {
+				request.datetime = params["datetime"];
+			}
+
+			const result = await api.checkPath(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+				return;
+			}
+
+			if (result.value) {
+				reply.status(200).send(result.value);
+			}
+
+			throw new Error("Result must have an error or value.");
+		}
 	});
 }
