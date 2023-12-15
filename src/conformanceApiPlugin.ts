@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest, IMixedRequest, IRequiredRequest, IMirrorBytesRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest, IMixedRequest, IRequiredRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -525,5 +525,38 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 
 			throw new Error("Result must have an error or value.");
 		},
+	});
+
+	fastify.route({
+		url: "/mirrorBytes",
+		method: "POST",
+		handler: async (req, reply) => {
+			reply.status(500).send({
+				code: "NotImplemented",
+				message: "Javascript HttpClientUtility doesn't support non-json responses currently.",
+			});
+		}
+	});
+
+	fastify.route({
+		url: "/mirrorText",
+		method: "POST",
+		handler: async (req, reply) => {
+			reply.status(500).send({
+				code: "NotImplemented",
+				message: "Javascript HttpClientUtility doesn't support non-json responses currently.",
+			});
+		}
+	});
+
+	fastify.route({
+		url: "/bodyTypes",
+		method: "POST",
+		handler: async (req, reply) => {
+			reply.status(500).send({
+				code: "NotImplemented",
+				message: "Need to support FSD attributes like `[http(from: body, type: \"text/x-input\")]`",
+			});
+		}
 	});
 }
