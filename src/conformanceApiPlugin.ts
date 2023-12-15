@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest, IMixedRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest, IMixedRequest, IRequiredRequest, IMirrorBytesRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -470,5 +470,60 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 
 			throw new Error("Result must have an error or value.");
 		}
+	});
+
+	fastify.route({
+		url: "/required",
+		method: "POST",
+		handler: async (req, reply) => {
+			const request: IRequiredRequest = {};
+			const body = req.body as Record<string, string>;
+			const query = req.query as Record<string, string>;
+
+			if (typeof query["query"] === "string") {
+				request.query = query["query"];
+			}
+			if (typeof body["normal"] === "string") {
+				request.normal = body["normal"];
+			}
+			if (typeof body["widget"]) {
+				request.widget = body["widget"] as never;
+			}
+			if (typeof body["widgets"]) {
+				request.widgets = body["widgets"] as never;
+			}
+			if (typeof body["widgetMatrix"]) {
+				request.widgetMatrix = body["widgetMatrix"] as never;
+			}
+			if (typeof body["widgetResult"]) {
+				request.widgetResult = body["widgetResult"] as never;
+			}
+			if (typeof body["widgetResults"]) {
+				request.widgetResults = body["widgetResults"] as never;
+			}
+			if (typeof body["widgetMap"]) {
+				request.widgetMap = body["widgetMap"] as never;
+			}
+			if (typeof body["hasWidget"]) {
+				request.hasWidget = body["hasWidget"] as never;
+			}
+			if (typeof body["point"]) {
+				request.point = body["point"] as never;
+			}
+
+			const result = await api.required(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+			}
+
+			if (result.value) {
+				reply.status(200).send(result.value);
+				return;
+			}
+
+			throw new Error("Result must have an error or value.");
+		},
 	});
 }
