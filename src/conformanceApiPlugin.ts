@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest } from "./conformanceApiTypes";
+import type { IConformanceApi, IGetApiInfoRequest, IGetWidgetsRequest, IGetWidgetRequest, IGetWidgetsResponse, ICreateWidgetRequest, IWidget, IDeleteWidgetRequest, IGetWidgetBatchRequest, IMirrorFieldsRequest, ICheckQueryRequest, Answer, ICheckPathRequest, IMirrorHeadersRequest, IMixedRequest } from "./conformanceApiTypes";
 
 const standardErrorCodes: { [code: string]: number } = {
 	NotModified: 304,
@@ -409,6 +409,62 @@ export const conformanceApiPlugin: FastifyPluginAsync<ConformanceApiPluginOption
 				}
 
 				reply.status(200);
+				return;
+			}
+
+			throw new Error("Result must have an error or value.");
+		}
+	});
+
+	// implement the mixed route here.
+	// pull path from params, query from query, header from headers, and normal from body
+	fastify.route({
+		url: "/mixed/:path",
+		method: "POST",
+		handler: async (req, reply) => {
+			const request: IMixedRequest = {};
+			const params = req.params as Record<string, string>;
+			const query = req.query as Record<string, string>;
+			const headers = req.headers as Record<string, string>;
+			const body = req.body as Record<string, string>;
+
+			if (typeof params["path"] === "string") {
+				request.path = params["path"];
+			}
+			if (typeof query["query"] === "string") {
+				request.query = query["query"];
+			}
+			if (typeof headers["header"] === "string") {
+				request.header = headers["header"];
+			}
+			if (typeof body["normal"] === "string") {
+				request.normal = body["normal"];
+			}
+
+			const result = await api.mixed(request);
+
+			if (result.error) {
+				const status = result.error.code && standardErrorCodes[result.error.code];
+				reply.status(status || 500).send(result.error);
+			}
+
+			if (result.value) {
+				if (result.value.header != null) {
+					reply.header("header", result.value.header);
+				}
+
+				if (result.value.body != null) {
+					reply.status(202).send(result.value.body);
+					return;
+				}
+
+				if (result.value.empty) {
+					reply.status(204);
+					return;
+				}
+
+
+				reply.status(200).send(result.value);
 				return;
 			}
 
